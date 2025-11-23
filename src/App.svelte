@@ -209,7 +209,7 @@
 </script>
 
 <main class="p-5 h-screen">
-  <div class="flex justify-center items-center">
+  <div class="w-fit flex justify-center items-center">
     <span class="text-5xl text-primary">♜ </span>
     <h1 class="grow text text-center text-3xl text-primary font-bold">
       Simple Swiss Tournament Creator
@@ -235,7 +235,7 @@
           turnamentStart = true;
           nextRound();
           sessionStorage.setItem("stared", "true");
-        }}>Start</button
+        }}>Start Tournament</button
       >
       <ul class="list">
         {#each players as player}
@@ -290,7 +290,7 @@
           />
         </div>
       {/each}
-      <button class="btn btn-secondary btn-block mt-5">Next Round</button>
+      <button class="btn btn-primary btn-block mt-5">Next Round</button>
     </form>
     <div class="my-10 flex flex-col justify-center">
       <button
@@ -299,7 +299,7 @@
         >{showTable ? "" : "Show "}Table</button
       >
       {#if showTable}
-        <table class="table table-fixed">
+        <table class="table table-fixed mb-0">
           <thead>
             <tr class="text-center">
               <th class="px-1 text-left">Name</th>
@@ -356,7 +356,7 @@
     {/if}
   {/if}
   {#if newRoundError}
-    <div class="toast toast-top toast-center">
+    <div class="toast toast-bottom toast-center">
       <button class="alert alert-error" onclick={() => (newRoundError = false)}>
         Not all matches are decided
       </button>
@@ -371,6 +371,6 @@
       players = [];
       turnamentStart = false;
       round = 0;
-    }}>Reset</button
+    }}>Reset Tournament</button
   >
 </main>
