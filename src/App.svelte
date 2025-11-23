@@ -5,13 +5,11 @@
   let newRoundError = $state(false);
   const gamesStored = JSON.parse(sessionStorage.getItem("games"));
   const playersStored = JSON.parse(sessionStorage.getItem("players"));
-  const turnamentStartStored = sessionStorage.getItem("started");
   const pairingsStored = JSON.parse(sessionStorage.getItem("pairings"));
   const roundStored = sessionStorage.getItem("round");
   let round = $state(roundStored ? parseInt(roundStored) : 0);
   let inputError = $state(false);
   let games = $state<Game[]>(gamesStored ? gamesStored : []);
-  $inspect(turnamentStartStored);
   type Game = {
     white: string;
     black: string;
@@ -59,7 +57,9 @@
 
   let pairings = $state<Pairing[]>(pairingsStored ? pairingsStored : []);
 
-  let turnamentStart = $derived(pairings.length > 0 ? true : false);
+  let turnamentStart = $derived(
+    pairings.length > 0 || games.length > 0 ? true : false,
+  );
   const addPlayer = () => {
     if (players.find((player) => player.name === newPlayerName)) {
       inputError = true;
@@ -74,7 +74,7 @@
     players.sort((p1, p2) => {
       const a = p1.win + p1.draw / 2;
       const b = p2.win + p2.draw / 2;
-      if (b === a) return p2.bucholz - p1.bucholz;
+      if (b == a) return p1.bucholz - p2.bucholz;
       return b - a;
     });
   };
@@ -117,7 +117,7 @@
     pairings: string,
     choices: string,
   ): string | undefined => {
-    // pairing='Albert$Berta$Carlo...'
+    // pairing='Albert+Berta$Carlo...'
     if (choices === "") return pairings;
     const currentName = choices.split("$")[0];
     if (!currentName) return pairings + "$" + choices;
@@ -202,16 +202,16 @@
     } else {
       const centerButton = Array.from(
         document.getElementsByName(element.name),
-      ).find((e) => e.value === "draw");
+      ).find((e) => (e as HTMLInputElement).value === "draw");
       centerButton!.ariaLabel = "vs";
     }
   };
 </script>
 
 <main class="p-5 h-screen">
-  <div class="w-fit flex justify-center items-center">
+  <div class="flex justify-center items-center">
     <span class="text-5xl text-primary">♜ </span>
-    <h1 class="grow text text-center text-3xl text-primary font-bold">
+    <h1 class="text text-center text-3xl text-primary font-bold">
       Simple Swiss Tournament Creator
     </h1>
     <span class="text-5xl text-primary">♜ </span>
