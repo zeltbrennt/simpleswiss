@@ -1,5 +1,5 @@
 <script lang="ts">
-  let showGames = $state(true);
+  let showGames = $state(false);
   let showTable = $state(true);
   let newPlayerName = $state("");
   let newRoundError = $state(false);
