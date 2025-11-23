@@ -1,8 +1,5 @@
 <script lang="ts">
-  import type { MouseEventHandler } from "svelte/elements";
-
   let newPlayerName = $state("");
-  let showTipp = $state(true);
   let newRoundError = $state(false);
   const gamesStored = JSON.parse(sessionStorage.getItem("games"));
   const playersStored = JSON.parse(sessionStorage.getItem("players"));
@@ -26,6 +23,7 @@
     draw: number;
     opponents: string[];
     playedAsWhite: number;
+    bucholz: number;
   };
   type Pairing = {
     id: string;
@@ -40,6 +38,7 @@
       draw: 0,
       opponents: [],
       playedAsWhite: 0,
+      bucholz: 0,
     };
   };
 
@@ -73,14 +72,14 @@
     players.sort((p1, p2) => {
       const a = p1.win + p1.draw / 2;
       const b = p2.win + p2.draw / 2;
-      if (b === a) return calculateBucholz(p2) - calculateBucholz(p1);
+      if (b === a) return p2.bucholz - p1.bucholz;
       return b - a;
     });
   };
-  const newRound = () => {
-    // vermutlich lieber als baumsuche, da nicht immer alle paarungen gefunden werden :(
+  const nextRound = () => {
     pairings.length = 0;
     rankPlayers();
+    players.forEach((p) => (p.bucholz = calculateBucholz(p)));
     const nextRound =
       recursiveSearch("", players.map((p) => p.name).join("$"))?.split("$") ||
       [];
@@ -178,14 +177,14 @@
       }
       games.push(game);
     }
-    newRound();
+    nextRound();
     form.reset();
   };
 
   const calculateBucholz = (player: Player): number => {
     if (player.opponents.length === 0) return 0;
-    const opponents = player.opponents.map((o) =>
-      players.find((p) => p.name === o),
+    const opponents = $state.snapshot(
+      player.opponents.map((o) => players.find((p) => p.name === o)),
     );
     const scores = opponents.map((o) => (o?.win || 0) + (o?.draw || 0) / 2);
     return scores.reduce((a, b) => a + b);
@@ -227,7 +226,7 @@
         class="btn btn-primary w-full p-5"
         onclick={() => {
           turnamentStart = true;
-          newRound();
+          nextRound();
           sessionStorage.setItem("stared", "true");
         }}>Start</button
       >
@@ -321,7 +320,7 @@
               <th>{player.win}</th>
               <th>{player.draw}</th>
               <th>{player.loss}</th>
-              <th>{calculateBucholz(player)}</th>
+              <th>{player.bucholz}</th>
             </tr>
           {/each}
         </tbody>
