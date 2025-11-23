@@ -1,4 +1,6 @@
 <script lang="ts">
+  let showGames = $state(true);
+  let showTable = $state(true);
   let newPlayerName = $state("");
   let newRoundError = $state(false);
   const gamesStored = JSON.parse(sessionStorage.getItem("games"));
@@ -57,7 +59,7 @@
 
   let pairings = $state<Pairing[]>(pairingsStored ? pairingsStored : []);
 
-  let turnamentStart = $state(pairings.length > 0 ? true : false);
+  let turnamentStart = $derived(pairings.length > 0 ? true : false);
   const addPlayer = () => {
     if (players.find((player) => player.name === newPlayerName)) {
       inputError = true;
@@ -206,10 +208,15 @@
   };
 </script>
 
-<main class="m-5 h-screen">
-  <h1 class="text text-center text-3xl text-primary font-bold">
-    Simple Swiss Tournament Creator
-  </h1>
+<main class="p-5 h-screen">
+  <div class="flex justify-center items-center">
+    <span class="text-5xl text-primary">♜ </span>
+    <h1 class="grow text text-center text-3xl text-primary font-bold">
+      Simple Swiss Tournament Creator
+    </h1>
+    <span class="text-5xl text-primary">♜ </span>
+  </div>
+  <div class="divider"></div>
   {#if !turnamentStart}
     <div>
       <form class="flex gap-2 my-10" onsubmit={handlePlayerSubmit}>
@@ -247,27 +254,13 @@
       </ul>
     </div>
   {:else}
-    <h1 class="text text-3xl text-center my-5">Round {round}</h1>
+    <h1 class="text text-3xl text-center my-5 italic text-secondary">
+      Round {round}
+    </h1>
     {#if pairings.length === 0}
       <p class="text p-5">No new pairings possible</p>
     {/if}
 
-    <dialog class="modal" id="help-modal">
-      <div class="modal-box">
-        <h1 class="text-lg font-bold">Tipp</h1>
-        <p class="text text-center">
-          Click the names to indiciate who won the game
-        </p>
-        <p class="text text-center">Click the 'vs' button to indicate a draw</p>
-        <p class="text text-center">
-          When you are ready, click 'Next Round' to calculate the table and the
-          next pairings
-        </p>
-        <div class="modal-action">
-          <button class="btn btn-ghost">OK</button>
-        </div>
-      </div>
-    </dialog>
     <form onsubmit={handleResultSubmit}>
       {#each pairings as pairing}
         <div class="grid grid-cols-3 gap-2 my-2">
@@ -297,56 +290,68 @@
           />
         </div>
       {/each}
-      <button class="btn btn-secondary btn-block">Next Round</button>
+      <button class="btn btn-secondary btn-block mt-5">Next Round</button>
     </form>
-    <div class="my-10">
-      <h2 class="text-3xl text-center">Table</h2>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Points</th>
-            <th>Win</th>
-            <th>Draw</th>
-            <th>Loss</th>
-            <th>Bucholz</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each players as player}
-            <tr>
-              <th><b>{player.name}</b></th>
-              <th>{player.win + player.draw / 2}</th>
-              <th>{player.win}</th>
-              <th>{player.draw}</th>
-              <th>{player.loss}</th>
-              <th>{player.bucholz}</th>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-    {#if games.length > 0}
-      <div>
-        <h2 class="text text-3xl text-center">Games</h2>
-        <table class="table">
+    <div class="my-10 flex flex-col justify-center">
+      <button
+        class="btn btn-ghost btn-xl"
+        onclick={() => (showTable = !showTable)}
+        >{showTable ? "" : "Show "}Table</button
+      >
+      {#if showTable}
+        <table class="table table-fixed">
           <thead>
-            <tr>
-              <th>Game</th>
-              <th>Result</th>
-              <th>Round</th>
+            <tr class="text-center">
+              <th class="px-1 text-left">Name</th>
+              <th class="px-1">Points</th>
+              <th class="px-1">Win</th>
+              <th class="px-1">Draw</th>
+              <th class="px-1">Loss</th>
+              <th class="px-1">Bucholz</th>
             </tr>
           </thead>
           <tbody>
-            {#each games as game}
-              <tr>
-                <th>{game.white} : {game.black}</th>
-                <th>{game.result}</th>
-                <th>{game.round}</th>
+            {#each players as player}
+              <tr class="text-center">
+                <th class="px-1 text-left"><b>{player.name}</b></th>
+                <th class="px-1">{player.win + player.draw / 2}</th>
+                <th class="px-1">{player.win}</th>
+                <th class="px-1">{player.draw}</th>
+                <th class="px-1">{player.loss}</th>
+                <th class="px-1">{player.bucholz}</th>
               </tr>
             {/each}
           </tbody>
         </table>
+      {/if}
+    </div>
+    {#if games.length > 0}
+      <div class="flex flex-col justify-center">
+        <button
+          class="btn btn-ghost btn-xl"
+          onclick={() => (showGames = !showGames)}
+          >{showGames ? "" : "Show "}Games</button
+        >
+        {#if showGames}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Game</th>
+                <th class="text-center">Result</th>
+                <th class="text-center">Round</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each games as game}
+                <tr>
+                  <th>{game.white} : {game.black}</th>
+                  <th class="text-center">{game.result}</th>
+                  <th class="text-center">{game.round}</th>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        {/if}
       </div>
     {/if}
   {/if}
