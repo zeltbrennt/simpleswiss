@@ -1,50 +1,22 @@
 <script lang="ts">
+  import {
+    newPlayer,
+    recursiveSearch,
+    calculateBucholz,
+    rankPlayers,
+    saveSession,
+  } from "./lib/util";
+  const storedSession: Session = JSON.parse(sessionStorage.getItem("session"));
   let showGames = $state(false);
   let showTable = $state(true);
   let newPlayerName = $state("");
   let newRoundError = $state(false);
-  const gamesStored = JSON.parse(sessionStorage.getItem("games"));
-  const playersStored = JSON.parse(sessionStorage.getItem("players"));
-  const pairingsStored = JSON.parse(sessionStorage.getItem("pairings"));
-  const roundStored = sessionStorage.getItem("round");
-  let round = $state(roundStored ? parseInt(roundStored) : 0);
   let inputError = $state(false);
-  let games = $state<Game[]>(gamesStored ? gamesStored : []);
-  type Game = {
-    white: string;
-    black: string;
-    result: string;
-    round: number;
-  };
-  type Player = {
-    name: string;
-    win: number;
-    loss: number;
-    draw: number;
-    opponents: string[];
-    playedAsWhite: number;
-    bucholz: number;
-  };
-  type Pairing = {
-    id: string;
-    white: Player;
-    black: Player;
-  };
-  const newPlayer = (name: string): Player => {
-    return {
-      name: name,
-      win: 0,
-      loss: 0,
-      draw: 0,
-      opponents: [],
-      playedAsWhite: 0,
-      bucholz: 0,
-    };
-  };
-
+  let round = $state(storedSession ? storedSession.round : 0);
+  let games = $state<Game[]>(storedSession ? storedSession.games : []);
   let players = $state<Player[]>(
-    playersStored
-      ? playersStored
+    storedSession
+      ? storedSession.players
       : [
           newPlayer("Albert"),
           newPlayer("Berta"),
@@ -54,12 +26,9 @@
           newPlayer("Ferdinand"),
         ],
   );
+  let pairings = $state<Pairing[]>(storedSession ? storedSession.pairings : []);
+  let turnamentStart = $derived(pairings.length > 0 || games.length > 0);
 
-  let pairings = $state<Pairing[]>(pairingsStored ? pairingsStored : []);
-
-  let turnamentStart = $derived(
-    pairings.length > 0 || games.length > 0 ? true : false,
-  );
   const addPlayer = () => {
     if (players.find((player) => player.name === newPlayerName)) {
       inputError = true;
@@ -70,21 +39,14 @@
     newPlayerName = "";
   };
 
-  const rankPlayers = () => {
-    players.sort((p1, p2) => {
-      const a = p1.win + p1.draw / 2;
-      const b = p2.win + p2.draw / 2;
-      if (b == a) return p1.bucholz - p2.bucholz;
-      return b - a;
-    });
-  };
   const nextRound = () => {
     pairings.length = 0;
-    rankPlayers();
-    players.forEach((p) => (p.bucholz = calculateBucholz(p)));
+    rankPlayers(players);
+    players.forEach((p) => (p.bucholz = calculateBucholz(p, players)));
     const nextRound =
-      recursiveSearch("", players.map((p) => p.name).join("$"))?.split("$") ||
-      [];
+      recursiveSearch("", players.map((p) => p.name).join("$"), players)?.split(
+        "$",
+      ) || [];
     for (let pair of nextRound) {
       const pairSplit = pair.split("+");
       const p1 = players.find((p) => p.name === pairSplit[0]);
@@ -101,47 +63,13 @@
       p1.opponents.push(p2.name);
       p2.opponents.push(p1.name);
     }
-    sessionStorage.setItem("players", JSON.stringify(players));
-    sessionStorage.setItem("games", JSON.stringify(games));
     round++;
-    sessionStorage.setItem("round", round.toString());
-    sessionStorage.setItem("pairings", JSON.stringify(pairings));
+    saveSession(players, games, pairings, round);
     Array.from(document.getElementsByClassName("centerButton")).forEach(
       (element) => {
         element.ariaLabel = "vs";
       },
     );
-  };
-
-  const recursiveSearch = (
-    pairings: string,
-    choices: string,
-  ): string | undefined => {
-    // pairing='Albert+Berta$Carlo...'
-    if (choices === "") return pairings;
-    const currentName = choices.split("$")[0];
-    if (!currentName) return pairings + "$" + choices;
-    const currentPlayer = players.find((p) => p.name === currentName);
-    const playerChoides = choices
-      .split("$")
-      .filter(
-        (c) => !currentPlayer?.opponents.includes(c) && c !== currentName,
-      );
-    if (playerChoides.length === 0) return undefined;
-    for (let p of playerChoides) {
-      let newPairins: string | undefined =
-        pairings === ""
-          ? currentName + "+" + p
-          : pairings + "$" + currentName + "+" + p;
-      newPairins = recursiveSearch(
-        newPairins,
-        choices
-          .split("$")
-          .filter((c) => c !== currentName && c !== p)
-          .join("$"),
-      );
-      if (newPairins) return newPairins;
-    }
   };
 
   const handleResultSubmit = (event: SubmitEvent) => {
@@ -154,8 +82,8 @@
       newRoundError = true;
       return;
     }
-    for (let match of matches) {
-      const pairing = pairings.find((p) => p.id === match[0]);
+    for (let [id, winner] of matches) {
+      const pairing = pairings.find((p) => p.id === id);
       if (!pairing) continue;
       let game: Game = {
         white: pairing.white.name,
@@ -164,11 +92,11 @@
         round: round,
       };
       pairing.white.playedAsWhite++;
-      if (pairing.white.name === match[1]) {
+      if (pairing.white.name === winner) {
         pairing.white.win++;
         pairing.black.loss++;
         game.result = "1-0";
-      } else if (pairing.black.name === match[1]) {
+      } else if (pairing.black.name === winner) {
         pairing.white.loss++;
         pairing.black.win++;
         game.result = "0-1";
@@ -183,14 +111,6 @@
     form.reset();
   };
 
-  const calculateBucholz = (player: Player): number => {
-    if (player.opponents.length === 0) return 0;
-    const opponents = $state.snapshot(
-      player.opponents.map((o) => players.find((p) => p.name === o)),
-    );
-    const scores = opponents.map((o) => (o?.win || 0) + (o?.draw || 0) / 2);
-    return scores.reduce((a, b) => a + b);
-  };
   const handlePlayerSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     addPlayer();
