@@ -1,4 +1,6 @@
 <script lang="ts">
+  import PairingComponent from "./lib/PairingComponent.svelte";
+  import ResultTable from "./lib/ResultTable.svelte";
   import {
     newPlayer,
     recursiveSearch,
@@ -154,7 +156,6 @@
         onclick={() => {
           turnamentStart = true;
           nextRound();
-          sessionStorage.setItem("stared", "true");
         }}>Start Tournament</button
       >
       <ul class="list">
@@ -183,32 +184,7 @@
 
     <form onsubmit={handleResultSubmit}>
       {#each pairings as pairing}
-        <div class="grid grid-cols-3 gap-2 my-2">
-          <input
-            type="radio"
-            name={pairing.id}
-            value={pairing.white.name}
-            aria-label={pairing.white.name}
-            class="btn"
-            onclick={handleClick}
-          />
-          <input
-            type="radio"
-            class="btn btn-ghost btn-secondary btn-circle m-auto centerButton"
-            name={pairing.id}
-            value="draw"
-            aria-label="vs"
-            onclick={handleClick}
-          />
-          <input
-            type="radio"
-            name={pairing.id}
-            value={pairing.black.name}
-            aria-label={pairing.black.name}
-            class="btn"
-            onclick={handleClick}
-          />
-        </div>
+        <PairingComponent {pairing} {handleClick} />
       {/each}
       <button class="btn btn-primary btn-block mt-5">Next Round</button>
     </form>
@@ -219,30 +195,7 @@
         >{showTable ? "" : "Show "}Table</button
       >
       {#if showTable}
-        <table class="table table-fixed mb-0">
-          <thead>
-            <tr class="text-center">
-              <th class="px-1 text-left">Name</th>
-              <th class="px-1">Points</th>
-              <th class="px-1">Win</th>
-              <th class="px-1">Draw</th>
-              <th class="px-1">Loss</th>
-              <th class="px-1">Bucholz</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each players as player}
-              <tr class="text-center">
-                <th class="px-1 text-left"><b>{player.name}</b></th>
-                <th class="px-1">{player.win + player.draw / 2}</th>
-                <th class="px-1">{player.win}</th>
-                <th class="px-1">{player.draw}</th>
-                <th class="px-1">{player.loss}</th>
-                <th class="px-1">{player.bucholz}</th>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
+        <ResultTable {players} />
       {/if}
     </div>
     {#if games.length > 0}
